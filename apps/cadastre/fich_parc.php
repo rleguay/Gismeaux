@@ -38,7 +38,7 @@ gis_session_start();
 $insee = $_SESSION['profil']->insee;
 $appli = $_SESSION['profil']->appli;
 
-if ((!$_SESSION['profil']->acces_ssl) || !in_array ("Cadastre", $_SESSION['profil']->liste_appli)){
+if ((!$_SESSION['profil']->acces_ssl) || !in_array ("cadastre", $_SESSION['profil']->liste_appli)){
 	die("Point d'entrée réglementé.<br> Accès interdit. <br>Veuillez vous connecter via <a href=\"https://".$_SERVER['HTTP_HOST']."\">serveur carto</a><SCRIPT language=javascript>setTimeout(\"window.location.replace('https://".$_SERVER['HTTP_HOST']."')\",5000)</SCRIPT>");
 }
 if (isset($_GET["commune"]))
@@ -56,8 +56,8 @@ if ($_GET["obj_keys"])
 		$ch_key.=substr($tab_key[$p],0,3)."000".substr($tab_key[$p],6)."','";
 	}
 	$ch_key=substr($ch_key,0,-3);
-		$comma1="select cadastre.gm_tab_parcelle(ind) from cadastre.parcel where ind in ('".$ch_key."')";
-		//$comma1="select * from cadastre.parcel where ind in ('".$ch_key."')";
+	$comma1="select cadastre.gm_tab_parcelle(ind) from cadastre.parcel where ind in ('".$ch_key."')";
+	//$comma1="select * from cadastre.parcel where ind in ('".$ch_key."')";
 //    $comma1="select * from cadastre.parcel where ind in ('".str_replace(",","','",$_GET["obj_keys"])."')";
     if (substr($insee,3,3) != '000')
       $comma1 .= " and commune = '".$insee."' "; // Protection contre les manipulations abusives d'URLs.
@@ -76,14 +76,14 @@ if ($_GET["obj_keys"])
        }
      elseif ($_GET["pnprop"]!="")
        {
-	 $comma2="select prop1 from cadastre.propriet where ddenom like '%".$_GET["pnprop"]."%' and commune like '".$commune."'";
-	 $result=$DB->tab_result($comma2);
-	 $comma1="select * from cadastre.parcel where prop1 in('";
-	 for ($i=0;$i<count($result);$i++)
+	// $comma2="select prop1 from cadastre.propriet where ddenom like '%".$_GET["pnprop"]."%' and commune like '".$commune."'";
+	// $result=$DB->tab_result($comma2);
+	 $comma1="select * from cadastre.parcel where prop1 in (select prop1 from cadastre.propriet where ddenom like '%".$_GET["pnprop"]."%' and commune like '".$commune."')";
+/*	 for ($i=0;$i<count($result);$i++)
 	   {
 	     $comma1.=$result[$i][0]."','";
 	   }
-	 $comma1.="')";
+	 $comma1.="')";*/
        }
      if ($commune)
        {
@@ -100,7 +100,7 @@ if ($_GET["noprop"]!="")
     $comma2="select * from cadastre.propriet where ddenom like '%".$_GET["noprop"]."%' ";
     if ($commune)
       {
-	$comma2.=" and commune = '".$commune."'";
+	$comma2.=" and commune like '".$commune."'";
       }
     $pprow=$DB->tab_result($comma2);
     $nbr_par=0;
@@ -109,7 +109,7 @@ set_time_limit(120);
 if ($nbr_par==1)
   {
     /* fiche parcelle */
-    //$par1=$rowparc[0]['ind'];
+    if ($_GET["obj_keys"]){$ch_key=$_GET["obj_keys"];}else{$ch_key=$rowparc[0]['ind'];}
     header("Location:./fic_parc2.php?ind=$ch_key&".session_name()."=".session_id());
     //header("Location:./test_parcelle.php?ind=$ch_key&".session_name()."=".session_id());
   }
@@ -152,9 +152,30 @@ elseif ($nbr_par>1){
   include('head.php');
   echo '<table width="100%" align="center">';
   echo '<tr><td>Num&eacute;ro</td><td>Contenance</td><td>adresse</td><td>Propri&eacute;taire</td><td>Adresse Propri&eacute;taire</td><td>Cadrage SIG</td></tr>';
-  for($k=0;$k<$nbr_par;$k++){ 
-         echo $rowparc[$k][0];
+/*  for($k=0;$k<$nbr_par;$k++){ 
+         echo '<tr><td>'.$rowparc[$k][0].'</td></tr>';
+    }*/
+      if ($_GET["obj_keys"]){
+      for($k=0;$k<$nbr_par;$k++)
+    { 
+         echo $rowparc[$k][0];}
+      }else{
+      for($k=0;$k<$nbr_par;$k++)
+    { 
+      $rvoie=$DB->tab_result("select nom_voie from cadastre.voies where code_voie='".$rowparc[$k]['ccoriv']."' and commune ='".$rowparc[$k]['commune']."';" );
+      $rowvoie=$rvoie[0][0];
+      $rprop=$DB->tab_result("select ddenom,dlign3,dlign4,dlign5,dlign6 from cadastre.propriet where prop1='".$rowparc[$k]['prop1']."' and gdesip='1' and commune='".$rowparc[$k]['commune']."';") ;
+      echo '<tr>';
+	  echo '<td><a href="fic_parc2.php?ind='.$rowparc[$k]['ind'].'&'.session_name().'='.session_id().'" target="_self">'.$rowparc[$k]['par1'].'</a></td>';
+      echo '<td>'.$rowparc[$k]['dcntpa'].'</td>';
+      echo '<td>'.$rowparc[$k]['dnuvoi'].$rowparc[$k]['dindic'].", ".$rowvoie.'</td>';
+      echo '<td>'.$rprop[0]['ddenom'].'</td>';
+      echo '<td>'.$rprop[0]['dlign3'].$rprop[0]['dlign4'].$rprop[0]['dlign5'].$rprop[0]['dlign6'].'</td>';
+	   echo '<td><img src="../../doc_commune/770284/skins/sig.png" onclick="window.opener.svgWin.cadreparcelle(\''.$rowparc[$k]['ind'].'\')" alt="cadrer sur le SIG" /></td>';
+      echo '</tr>';
     }
+  }
+
   echo '</table>';
 }
 include('pied_cad.php');
