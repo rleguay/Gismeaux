@@ -548,7 +548,7 @@ class IntranetProfile extends Profile {
   {
     global $DB;
 
-    $res = $DB->tab_result("SELECT * FROM admin_svg.utilisateur WHERE login = '".$this->user."' AND psw = '".$this->pass."';");
+    $res = $DB->tab_result("SELECT * FROM admin_svg.utilisateur WHERE login = '".addslashes($this->user)."' AND psw = '".addslashes($this->pass)."';");
     
     if (count($res) == 0)
       {
@@ -733,7 +733,7 @@ class urbaProfile extends Profile {
   {
     global $DB;
 
-    $res = $DB->tab_result("SELECT * FROM admin_svg.utilisateur WHERE login = '".$this->user."' AND psw = '".$this->pass."';");
+    $res = $DB->tab_result("SELECT * FROM admin_svg.utilisateur WHERE login = '".addslashes($this->user)."' AND psw = '".addslashes($this->pass)."';");
     
     if (count($res) == 0)
       {
